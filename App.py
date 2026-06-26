@@ -1,5 +1,6 @@
 import os
 import json
+import yaml
 import streamlit as st
 from io import BytesIO
 from openai import OpenAI
@@ -9,7 +10,19 @@ from tooling import handle_tool_calls, tools
 
 load_dotenv(override=True)
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Load variables from .yml file
+with open('config.yml', 'r') as file:
+    # load text from YAML
+    content = file.read()
+
+    # replace values
+    secret_value = os.getenv("OPENAI_API_KEY")
+    content = content.replace('${OPENAI_API_KEY}', secret_value)
+
+    # Parse YAML modified 
+    config = yaml.safe_load(content)
+
+OPENAI_API_KEY = config['api_keys']['OPENAI_API_KEY'] # os.getenv("OPENAI_API_KEY")
 
 client_openai = OpenAI(api_key=OPENAI_API_KEY)
 

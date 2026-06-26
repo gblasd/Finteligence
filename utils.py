@@ -1,5 +1,5 @@
 import os
-import json
+import yaml
 import requests
 import numpy as np
 import pandas as pd
@@ -8,10 +8,21 @@ from openai import OpenAI
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-
 load_dotenv(override=True)
-ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
 
+# Load variables from .yml file
+with open('config.yml', 'r') as file:
+    # load text from YAML
+    content = file.read()
+
+    # replace values
+    secret_value = os.getenv("ALPHAVANTAGE_API_KEY")
+    content = content.replace('${ALPHAVANTAGE_API_KEY}', secret_value)
+
+    # Parse YAML modified 
+    config = yaml.safe_load(content)
+
+ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
 
 def _convert_columns_to_numeric(df, columns_to_exclude=None):
     """

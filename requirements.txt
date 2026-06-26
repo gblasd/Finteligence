@@ -4,3 +4,4 @@ openai
 streamlit
 plotly
 python-dotenv
+pyyaml
