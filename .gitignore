@@ -1,1 +1,4 @@
 .env
+# Ignore all .yml files except for .example files
+config.yml
+!config.yml.example

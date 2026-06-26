@@ -55,11 +55,9 @@ The platform separates responsibilities into distinct layers to ensure scalabili
     python3 -m pip install -r ./requirements.txt
 
 3. **Setup API keys:**
+    Paste your api keys on config.yml.example and run next command:
     ```bash
-    cat << 'EOF' > .env
-    OPENAI_API_KEY="TU_API_KEY"
-    ALPHAVANTAGE_API_KEY="TU_API_KEY"
-    EOF
+    cp config.yml.example config.yml
     ```
 
 4. **Run app:**
