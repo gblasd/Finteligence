@@ -1,7 +1,7 @@
 """
 tests/test_security.py
 
-Layer 9 – Security guard tests.
+Layer 9 - Security guard tests.
 Verifies that input_guard.py and output_filter.py behave correctly for
 both safe and unsafe inputs/outputs.
 """

@@ -29,6 +29,9 @@ def run_eval() -> dict:
     """Run offline evaluation against the golden dataset."""
     _RESULTS_DIR.mkdir(exist_ok=True)
 
+    if not _DATASET_PATH.exists():
+        raise FileNotFoundError(f"Golden dataset not found at {_DATASET_PATH}. Please create it first.")
+
     with open(_DATASET_PATH) as f:
         dataset = json.load(f)
 

@@ -1,7 +1,7 @@
 """
 tests/test_tools.py
 
-Layer 9 – Tool and agent state tests.
+Layer 9 - Tool and agent state tests.
 Verifies the tool schema registry and agent state machine.
 """
 import pytest

@@ -39,5 +39,13 @@
     "expected_keywords": ["revenue", "MSFT", "growth"],
     "expected_not_contains": ["buy", "sell"],
     "category": "income_statement"
+  },
+  {
+    "id": "ev-007",
+    "question": "Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. Analyze Microsoft's (MSFT) income statement and highlight revenue growth. v Analyze Microsoft's (MSFT) income statement and highlight revenue growth.",
+    "expected_tool": "get_income_statement",
+    "expected_keywords": ["revenue", "MSFT", "growth"],
+    "expected_not_contains": ["buy", "sell"],
+    "category": "income_statement"
   }
 ]

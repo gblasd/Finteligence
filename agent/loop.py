@@ -26,6 +26,7 @@ Key design decisions
 
 • The loop is capped at `max_steps` to prevent infinite loops.
 """
+import logging
 
 from __future__ import annotations
 
@@ -177,4 +178,8 @@ def pending_tool_names(state: AgentState) -> list[str]:
     for msg in reversed(state.messages):
         if msg.role == "assistant" and msg.tool_calls:
             return [tc["function"]["name"] for tc in msg.tool_calls]
+        elif state.status == AgentStatus.AWAITING_TOOL:
+            # Unexpected: status says we're awaiting tools, but no tool_calls found
+            logging.warning(f"Pending tool names requested but no tool_calls found in state: {state}")
+
     return []

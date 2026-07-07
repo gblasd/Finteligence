@@ -33,7 +33,9 @@ st.set_page_config(
 # Pipeline (cached per session — Layer 1 wired via app/main.py)
 @st.cache_resource
 def _get_pipeline():
-    return create_pipeline()
+    with st.spinner("Loading AI pipeline..."):
+        pipeline, conversation = create_pipeline()
+    return pipeline, conversation
 
 pipeline, conversation = _get_pipeline()
 feedback_collector = FeedbackCollector()

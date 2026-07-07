@@ -1,7 +1,7 @@
 """
 tests/test_routing.py
 
-Layer 9 – Query routing tests.
+Layer 9 - Query routing tests.
 Verifies that QueryRouter sends queries to the correct destination.
 """
 import pytest

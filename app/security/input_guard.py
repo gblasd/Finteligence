@@ -1,16 +1,16 @@
 """
 app/security/input_guard.py
 
-Layer 4 – Input guard.
+Layer 4 - Input guard.
 Checks every user message BEFORE it enters the AI pipeline.
 Catches prompt injection, out-of-scope requests, and oversized inputs.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from app.config import INPUT_MAX_LENGTH
 
-
-_MAX_LENGTH = 2000  # characters
+_MAX_LENGTH = INPUT_MAX_LENGTH  # characters
 
 _INJECTION_PATTERNS = [
     "ignore your instructions",

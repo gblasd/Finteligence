@@ -30,6 +30,7 @@ from io import BytesIO
 from typing import Callable
 
 import yaml
+import logging
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -159,6 +160,14 @@ class FinteligenceRunner:
 
     def export_state(self, state: AgentState) -> str:
         """Serialise the full conversation state to a JSON string."""
+        # Warn if we're dropping audio data
+        if state.audio_bytes:
+            logging.debug(f"Striping {len(state.audio_bytes)} bytes of audio from state export.")
+
+        for msg in state.messages:
+            if msg.audio:
+                logging.debug(f"Stripping audio from message at index {state.messages.index(msg)}")
+
         return state.to_json()
 
     def import_state(self, raw_json: str) -> AgentState:
