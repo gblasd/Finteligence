@@ -7,6 +7,14 @@ This file only renders the UI and passes user input to the pipeline.
 """
 from __future__ import annotations
 
+import os
+import sys
+
+# Ensure root directory is in python path
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import streamlit as st
 from app.main import create_pipeline
 from app.models import PipelineInput

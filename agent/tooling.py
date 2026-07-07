@@ -1,5 +1,5 @@
 """
-tooling.py — Backwards-compatibility shim.
+agent/tooling.py — Backwards-compatibility shim.
 
 The canonical tool registry and dispatch now live in:
   • agent/tools.py          — schemas

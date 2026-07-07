@@ -26,17 +26,20 @@ Finteligence/
 │   ├── prompts/             ← Layer 3: Prompt templates and registry
 │   └── security/            ← Layer 4: Input/content/output guards
 ├── agent/                   ← Factor-Agents state machine (loop, state, tools)
+│   ├── tooling.py           ← Backwards-compatibility shim
+│   └── utils.py             ← Financial data utilities (Alpha Vantage)
 ├── evaluation/              ← Layer 5: Offline eval + online monitoring
 ├── observability/           ← Layer 6: Tracer, feedback, cost tracking
 ├── .antigravity/            ← Layer 7: AI assistant memory and rules
 ├── data/                    ← Layer 8: Raw, processed, and index data
 ├── tests/                   ← Layer 9: Automated test suite
-├── App.py                   ← Streamlit UI (presentation only)
-└── utils.py                 ← Financial data utilities (Alpha Vantage)
+└── frontend/
+    ├── App.py               ← Streamlit UI (presentation only)
+    └── .streamlit/          ← Streamlit configuration
 ```
 
 ## Rules for AI Coding Assistants
-- Do NOT place AI logic directly inside `App.py`.
+- Do NOT place AI logic directly inside `frontend/App.py`.
 - Always use the existing layer-based architecture.
 - Prompts go in `app/prompts/` — never inline.
 - Security checks are mandatory for every user input and AI output.

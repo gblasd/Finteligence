@@ -4,7 +4,7 @@
 - Keep functions small, focused, and readable (single responsibility).
 - Use type hints on every function signature and return type.
 - Use meaningful names for services, agents, tools, and modules.
-- Follow the 9-layer folder structure — do not place AI logic in `App.py` or `main.py`.
+- Follow the 9-layer folder structure — do not place AI logic in `frontend/App.py` or `main.py`.
 
 ## Imports
 - Use absolute imports from the project root.

@@ -7,7 +7,7 @@ Each function matches the schema defined in agent/tools.py.
 """
 from __future__ import annotations
 
-from utils import (
+from agent.utils import (
     get_income_statement,
     get_balance_sheet,
     get_cashflow_statement,

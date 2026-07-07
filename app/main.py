@@ -4,7 +4,7 @@ app/main.py
 Single entry-point for the Finteligence AI pipeline.
 
 This file wires all 9 layers together and exposes two public interfaces:
-  1. `create_pipeline()` — factory used by App.py (Streamlit UI).
+  1. `create_pipeline()` — factory used by frontend/App.py (Streamlit UI).
   2. `run_query()`       — standalone CLI / test entry-point.
 
 Nothing in this file contains AI logic. It only instantiates and connects

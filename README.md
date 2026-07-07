@@ -98,7 +98,7 @@ ALPHAVANTAGE_API_KEY=...
 
 **4. Run the app:**
 ```bash
-streamlit run App.py
+streamlit run frontend/App.py
 ```
 
 **5. Run tests:**
@@ -126,13 +126,16 @@ Finteligence/
 │   ├── prompts/            ← Layer 3: Prompt management
 │   └── security/           ← Layer 4: Safety gate
 ├── agent/                  ← Factor-Agents state machine
+│   ├── tooling.py          ← Backwards-compatibility shim
+│   └── utils.py            ← Alpha Vantage financial utilities
 ├── evaluation/             ← Layer 5: Quality testing
 ├── observability/          ← Layer 6: Visibility
 ├── .antigravity/           ← Layer 7: AI assistant memory
 ├── data/                   ← Layer 8: Knowledge preparation
 ├── tests/                  ← Layer 9: Automated tests (24 tests)
-├── App.py                  ← Streamlit UI (presentation only)
-└── utils.py                ← Alpha Vantage financial utilities
+└── frontend/               ← Streamlit frontend code
+    ├── App.py              ← Streamlit UI (presentation only)
+    └── .streamlit/         ← Streamlit configuration
 ```
 
 ---
