@@ -2,3 +2,6 @@
 # Ignore all .yml files except for .example files
 config.yml
 !config.yml.example
+
+*__pycache__/
+notebooks/*
