@@ -1,14 +1,32 @@
-import os
-import json
-import yaml
-import streamlit as st
-from io import BytesIO
-from openai import OpenAI
-from dotenv import load_dotenv
-from prompts import stronger_prompt
-from tooling import handle_tool_calls, tools
+"""
+App.py — Finteligence Streamlit UI
 
-# ── Page config (must be first Streamlit call) ───────────────────────────────
+Factor 11 - Trigger from anywhere (channel-agnostic).
+============================================================
+This file is the *presentation layer only*.
+
+Responsibilities
+----------------
+• Render the Streamlit UI (sidebar, chat history, input widgets).
+• Convert UI events (text input, audio recording) into calls on
+  `FinteligenceRunner`.
+• Display intermediate tool-call statuses via the `on_step` callback.
+• Stream the final assistant answer.
+
+What this file does NOT contain
+--------------------------------
+• Any OpenAI API calls beyond TTS/STT delegation to the runner.
+• Any business logic (financial calculations, tool dispatch).
+• Any prompt strings.
+• Any agent control flow.
+"""
+
+import streamlit as st
+from agent.runner import FinteligenceRunner
+from agent.state import AgentState, AgentStatus
+from agent.tools import TOOL_DISPLAY_NAMES
+
+# Page config (must be first Streamlit call)
 st.set_page_config(
     page_title="Finteligence · AI Financial Analyst",
     page_icon=":material/candlestick_chart:",
@@ -16,40 +34,69 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-load_dotenv(override=True)
+# Runner (Factor 11: trigger from anywhere)
+# The runner is cached so it is instantiated once per Streamlit session.
+@st.cache_resource
+def get_runner() -> FinteligenceRunner:
+    return FinteligenceRunner()
 
-# ── Config & client ──────────────────────────────────────────────────────────
-with open("config.yml", "r") as f:
-    content = f.read()
-    secret_value = os.getenv("OPENAI_API_KEY")
-    content = content.replace("${OPENAI_API_KEY}", secret_value)
-    config = yaml.safe_load(content)
+runner = get_runner()
 
-OPENAI_API_KEY = config["api_keys"]["OPENAI_API_KEY"]
-client_openai = OpenAI(api_key=OPENAI_API_KEY)
-
-MODEL_CHAT = "gpt-5.1"
-MODEL_STT = "whisper-1"
-MODEL_TTS = "gpt-4o-mini-tts"
-
-# ── Suggestion chips ─────────────────────────────────────────────────────────
+# Suggestion chips
 SUGGESTIONS = {
-    ":blue[:material/candlestick_chart:] Analyze Apple (AAPL)": "Analyze Apple's latest income statement and give me the key financial insights.",
-    ":green[:material/trending_up:] Microsoft free cash flow": "Retrieve Microsoft (MSFT) annual cash flow statement and compute the free cash flow trend.",
-    ":violet[:material/query_stats:] Intrinsic value of NVDA": "Calculate the intrinsic value of NVIDIA (NVDA) and compare it with the current market price.",
-    ":orange[:material/mic:] Earnings call insights": "What were the key highlights from Tesla's most recent earnings call?",
+    ":blue[:material/candlestick_chart:] Analyze Apple (AAPL)": (
+        "Analyze Apple's latest income statement and give me the key financial insights."
+    ),
+    ":green[:material/trending_up:] Microsoft free cash flow": (
+        "Retrieve Microsoft (MSFT) annual cash flow statement and compute the free cash flow trend."
+    ),
+    ":violet[:material/query_stats:] Intrinsic value of NVDA": (
+        "Calculate the intrinsic value of NVIDIA (NVDA) and compare it with the current market price."
+    ),
+    ":orange[:material/mic:] Earnings call insights": (
+        "What were the key highlights from Tesla's most recent earnings call?"
+    ),
 }
 
-# ── Streaming helper ─────────────────────────────────────────────────────────
-def stream_assistant_answer(client, model, conversation):
+# Session state (Factor 5: single source of truth via AgentState)
+# We persist the full AgentState in Streamlit's session_state as a JSON string
+# so that the runner can resume across reruns without losing context.
+if "agent_state_json" not in st.session_state:
+    st.session_state.agent_state_json = AgentState().to_json()
+
+
+def _get_state() -> AgentState:
+    return AgentState.from_json(st.session_state.agent_state_json)
+
+
+def _save_state(state: AgentState) -> None:
+    st.session_state.agent_state_json = state.to_json()
+
+
+# Streaming helper
+
+def _stream_final_response(state: AgentState) -> str:
     """
-    Stream the final assistant turn and return the full text.
-    Uses st.write_stream with a generator for clean token-by-token display.
+    Stream the final assistant message token-by-token using st.write_stream.
+
+    We re-stream from the runner's client to get token-by-token output.
+    The final accumulated text is returned for persistence.
     """
-    def _token_generator():
+    from agent.prompts import SYSTEM_PROMPT
+    from openai import OpenAI
+    import os, yaml
+    from dotenv import load_dotenv
+
+    load_dotenv(override=True)
+    with open("config.yml") as f:
+        content = f.read().replace("${OPENAI_API_KEY}", os.getenv("OPENAI_API_KEY", ""))
+    config = yaml.safe_load(content)
+    client = OpenAI(api_key=config["api_keys"]["OPENAI_API_KEY"])
+
+    def _token_gen():
         stream = client.chat.completions.create(
-            model=model,
-            messages=conversation,
+            model=runner.model_chat,
+            messages=state.api_messages(SYSTEM_PROMPT),
             stream=True,
         )
         for chunk in stream:
@@ -57,23 +104,16 @@ def stream_assistant_answer(client, model, conversation):
             if delta and delta.content:
                 yield delta.content
 
-    return st.write_stream(_token_generator())
+    return st.write_stream(_token_gen())
 
 
-# ── Session state ────────────────────────────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# ── Sidebar ──────────────────────────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
-    st.markdown(
-        "## :material/candlestick_chart: Finteligence",
-    )
+    st.markdown("## :material/candlestick_chart: Finteligence")
     st.caption("Powered by financial intelligence")
-
     st.markdown("---")
 
-    # ── Voice input ──────────────────────────────────────────────────────────
+    # Voice input (Factor 7: human contact as first-class interaction)
     st.subheader(":material/mic: Voice input", divider=False)
     st.caption("Record a voice message and click **Send audio** to transcribe it.")
     audio_value = st.audio_input("Record a message", label_visibility="collapsed")
@@ -87,7 +127,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Capabilities ─────────────────────────────────────────────────────────
+    # Capabilities
     st.subheader(":material/database: Available data", divider=False)
     capabilities = [
         (":material/receipt_long:", "Income statement"),
@@ -102,25 +142,26 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Clear chat ───────────────────────────────────────────────────────────
+    # Clear chat
     if st.button(
         "Clear conversation",
         icon=":material/delete_sweep:",
         width="stretch",
     ):
-        st.session_state.messages = []
+        _save_state(AgentState())
         st.rerun()
 
     st.caption("Educational use only · Not investment advice")
 
-# ── Main header ──────────────────────────────────────────────────────────────
+# Main header
 st.title(":material/candlestick_chart: Finteligence")
 st.caption(
     "Your AI-powered **fundamental analysis** mentor — ask about any publicly listed company."
 )
 
-# ── Suggestion chips (shown only on empty chat) ──────────────────────────────
-if not st.session_state.messages:
+# Suggestion chips (empty chat only)
+current_state = _get_state()
+if not current_state.messages:
     st.markdown("#### Try asking:")
     selected = st.pills(
         "Suggestions",
@@ -128,23 +169,25 @@ if not st.session_state.messages:
         label_visibility="collapsed",
     )
     if selected:
-        st.session_state.messages.append(
-            {"role": "user", "content": SUGGESTIONS[selected]}
-        )
+        user_prompt = SUGGESTIONS[selected]
+        current_state = current_state.add_user_message(user_prompt)
+        _save_state(current_state)
         st.rerun()
 
-# ── Chat history ─────────────────────────────────────────────────────────────
-for msg in st.session_state.messages:
-    avatar = ":material/candlestick_chart:" if msg["role"] == "assistant" else None
-    with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"])
-        audio_payload = msg.get("audio")
-        if audio_payload:
-            st.audio(audio_payload, format="audio/mp3")
+# Chat history
+for msg in current_state.messages:
+    if msg.role not in ("user", "assistant"):
+        continue  # Skip tool / system messages from the display
+    avatar = ":material/candlestick_chart:" if msg.role == "assistant" else None
+    with st.chat_message(msg.role, avatar=avatar):
+        if msg.content:
+            st.markdown(msg.content)
+        if msg.audio:
+            st.audio(msg.audio, format="audio/mp3")
 
-# ── Input handling ───────────────────────────────────────────────────────────
-user_prompt = None
-user_display_content = None
+# Input handling
+user_prompt: str | None = None
+user_display_content: str | None = None
 
 if text_prompt := st.chat_input(
     placeholder="Ask about any stock, metric, or concept...",
@@ -156,14 +199,9 @@ if text_prompt := st.chat_input(
 elif send_audio:
     if audio_value is not None:
         raw_audio = audio_value.getvalue()
-        audio_file = BytesIO(raw_audio)
-        audio_file.name = audio_value.name or "voice_message.wav"
+        audio_file_name = getattr(audio_value, "name", None) or "voice_message.wav"
         with st.spinner("Transcribing your voice message…"):
-            transcription = client_openai.audio.transcriptions.create(
-                model=MODEL_STT,
-                file=audio_file,
-            )
-        user_prompt = transcription.text.strip()
+            user_prompt = runner.transcribe_audio(raw_audio, filename=audio_file_name)
         if user_prompt:
             user_display_content = f":material/mic: {user_prompt}"
         else:
@@ -171,93 +209,68 @@ elif send_audio:
     else:
         st.toast("Record a voice message before sending.", icon=":material/info:")
 
-# ── Agent loop ───────────────────────────────────────────────────────────────
+# Agent loop
 if user_prompt:
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
+    current_state = _get_state()
 
+    # Show the user's message immediately
     with st.chat_message("user"):
         st.markdown(user_display_content or user_prompt)
 
-    # Build conversation with system prompt prepended
-    conversation = [{"role": "assistant", "content": stronger_prompt}]
-    conversation.extend(
-        {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages
+    # on_step callback: show a status indicator per tool call
+    _status_placeholder = st.empty()
+
+    def _on_step(state: AgentState) -> None:
+        """Called after each step in the agent loop — used for UI feedback."""
+        if state.status == AgentStatus.AWAITING_TOOL:
+            # Collect names from the last assistant message's tool_calls
+            for msg in reversed(state.messages):
+                if msg.role == "assistant" and msg.tool_calls:
+                    display_names = [
+                        TOOL_DISPLAY_NAMES.get(tc["function"]["name"], tc["function"]["name"])
+                        for tc in msg.tool_calls
+                    ]
+                    _status_placeholder.status(
+                        f"Fetching data: {', '.join(display_names)}…",
+                        expanded=False,
+                    )
+                    break
+
+    # Run the agent (Factor 8: runner owns control flow)
+    final_state = runner.run_turn(
+        state=current_state,
+        user_message=user_prompt,
+        on_step=_on_step,
     )
+    _status_placeholder.empty()
 
-    # Tool-calling loop
-    done = False
-    while not done:
-        completion = client_openai.chat.completions.create(
-            model=MODEL_CHAT,
-            messages=conversation,
-            tools=tools,
-        )
-        choice = completion.choices[0]
-        message = choice.message
-        finish_reason = choice.finish_reason
-
-        if finish_reason == "tool_calls" and message.tool_calls:
-            tool_calls = message.tool_calls
-            tool_calls_serialized = [
-                {
-                    "id": tc.id,
-                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                    "type": tc.type,
-                }
-                for tc in tool_calls
-            ]
-
-            # Show a subtle status pill for each tool being called
-            tool_names = [tc.function.name for tc in tool_calls]
-            with st.status(f"Fetching data: {', '.join(tool_names)}…", expanded=False):
-                results = handle_tool_calls(tool_calls)
-
-            safe_content = message.content or ""
-            if safe_content:
-                st.session_state.messages.append({"role": message.role, "content": safe_content})
-            conversation.append(
-                {
-                    "role": message.role,
-                    "content": safe_content,
-                    "tool_calls": tool_calls_serialized,
-                }
-            )
-            conversation.extend(results)
-            continue
-
-        done = True
-
-    # Stream the final response
+    # Stream the final answer
     with st.chat_message("assistant", avatar=":material/candlestick_chart:"):
-        response = stream_assistant_answer(
-            client=client_openai,
-            model=MODEL_CHAT,
-            conversation=conversation,
-        )
-
-    st.session_state.messages.append({"role": "assistant", "content": response})
-
-    # TTS audio generation
-    audio_bytes = None
-    with st.spinner("Generating audio response…"):
-        try:
-            speech = client_openai.audio.speech.create(
-                model=MODEL_TTS, voice="ash", input=response
+        if final_state.status == AgentStatus.ERROR:
+            st.error(
+                f"Something went wrong: {final_state.last_error}",
+                icon=":material/error:",
             )
-            audio_bytes = speech.read()
-        except Exception as exc:
-            st.toast(f"Audio generation failed: {exc}", icon=":material/volume_off:")
+        else:
+            streamed_response = _stream_final_response(final_state)
+            # Update last_response with the streamed text
+            final_state = final_state.model_copy(update={"last_response": streamed_response})
 
-    if audio_bytes:
-        st.audio(
-            audio_bytes,
-            format="audio/mp3",
-            start_time=0,
-            autoplay=True,
-            width="stretch",
-        )
-        # Persist audio in message history
-        last_msg = st.session_state.messages[-1]
-        if last_msg["role"] == "assistant":
-            last_msg["audio"] = audio_bytes
+    # TTS
+    if final_state.status == AgentStatus.DONE and final_state.last_response:
+        audio_bytes: bytes | None = None
+        with st.spinner("Generating audio response…"):
+            audio_bytes = runner.generate_audio(final_state.last_response)
+
+        if audio_bytes:
+            st.audio(audio_bytes, format="audio/mp3", start_time=0, autoplay=True)
+            # Attach audio to the last assistant message for replay in history
+            msgs = list(final_state.messages)
+            for i in range(len(msgs) - 1, -1, -1):
+                if msgs[i].role == "assistant":
+                    msgs[i] = msgs[i].model_copy(update={"audio": audio_bytes})
+                    break
+            final_state = final_state.model_copy(update={"messages": msgs})
+
+    # Persist the updated state
+    _save_state(final_state)
