@@ -1,0 +1,7 @@
+{
+  "chunk_size": 512,
+  "chunk_overlap": 64,
+  "split_by": "sentence",
+  "min_chunk_length": 50,
+  "metadata_fields": ["ticker", "fiscal_date", "report_type", "source"]
+}

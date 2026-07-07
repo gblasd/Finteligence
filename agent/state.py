@@ -115,7 +115,7 @@ class AgentState(BaseModel):
         """
         Build the exact message list sent to the API.
 
-        Factor 3 – Own your context window:
+        Factor 3 - Own your context window:
           • Prepends the system prompt as an assistant turn (OpenAI convention).
           • Compacts any stored error into a synthetic user message so the model
             can adapt (Factor 9).

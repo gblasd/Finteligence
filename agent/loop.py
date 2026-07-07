@@ -53,7 +53,7 @@ def step(
     system_prompt: str = SYSTEM_PROMPT,
 ) -> AgentState:
     """
-    Factor 12 – Stateless reducer.
+    Factor 12 - Stateless reducer.
 
     Takes the *current* AgentState and returns the *next* AgentState.
     This function has no side-effects beyond the OpenAI API call.
@@ -128,7 +128,7 @@ def run(
     on_step: Callable[[AgentState], None] | None = None,
 ) -> AgentState:
     """
-    Factor 8 – Own your control flow.
+    Factor 8 - Own your control flow.
 
     Drive the agent loop until it reaches DONE, ERROR, or `max_steps`.
 
