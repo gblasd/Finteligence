@@ -72,7 +72,7 @@ The diagram below shows how a user request travels through all 9 layers of the s
 
 **1. Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/finteligence.git
+git clone https://github.com/gblasd/finteligence.git
 cd finteligence
 ```
 
