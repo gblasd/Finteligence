@@ -4,4 +4,6 @@ openai
 streamlit
 plotly
 python-dotenv
-pyyaml
+pyyamlragas
+datasets
+langchain-openai
